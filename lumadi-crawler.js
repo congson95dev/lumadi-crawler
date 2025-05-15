@@ -12,7 +12,7 @@ const LAMUDI_URL = process.env.LAMUDI_URL;
     headless: false,
     defaultViewport: null,
     args: [
-      '--window-position=2920,0',
+      '--window-position=920,0',
       '--no-sandbox',
       '--disable-setuid-sandbox',
     ],
@@ -103,31 +103,75 @@ const LAMUDI_URL = process.env.LAMUDI_URL;
             );
             console.log(city);
 
-            // const content = await page.$$eval(
-            //   'div.sdc-article-body p',
-            //   elements => elements.map(el => el.innerText.trim()).join('\n')
-            // ).catch(() => '');
-            // console.log("content: " + content);
+            const house_type = await page.$eval('div[data-attr-name="propertyType"]', el => {
+              const nextDiv = el.nextElementSibling;
+              return nextDiv ? nextDiv.innerText.replace(/\s+/g, ' ').trim() : '';
+            }).catch(() => '');
+            console.log("house_type: " + house_type);
+            
+            // scroll to the bottom of the page
+            await page.evaluate(async () => {
+              await new Promise((resolve) => {
+                let totalHeight = 0;
+                const distance = 500;
+                const timer = setInterval(() => {
+                  const scrollHeight = document.body.scrollHeight;
+                  window.scrollBy(0, distance);
+                  totalHeight += distance;
 
-            // results.push({
-            //     title,
-            //     sub_title,
-            //     link,
-            //     published_date,
-            //     content,
-            // });
+                  if (totalHeight >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve();
+                  }
+                }, 200); // delay giữa các lần scroll (200ms)
+              });
+            });
+
+            const selling_price = await page.$eval('#MortgageCalculator input[placeholder="Property Price"]', el => el.value.trim());
+            console.log("selling_price: " + selling_price);
+
+            const bedrooms = await page.$eval('div[data-attr-name="bedrooms"]', el => {
+              const nextDiv = el.nextElementSibling;
+              return nextDiv ? nextDiv.innerText.replace(/\s+/g, ' ').trim() : '';
+            }).catch(() => '');
+            console.log("bedrooms: " + bedrooms);
+
+            const bathrooms = await page.$eval('div[data-attr-name="bathrooms"]', el => {
+              const nextDiv = el.nextElementSibling;
+              return nextDiv ? nextDiv.innerText.replace(/\s+/g, ' ').trim() : '';
+            }).catch(() => '');
+            console.log("bathrooms: " + bathrooms);
+
+            const description = await page.$$eval(
+              'div#DescriptionBox',
+              elements => elements.map(el => el.innerText.trim()).join('\n')
+            ).catch(() => '');
+            console.log("description: " + description);
+
+            const contact_name = await page.$eval('#rightColumn div[dir="auto"]', el => el.innerText.trim());
+            console.log("contact_name: " + contact_name);
+
+            results.push({
+                indoor_outdoor_list,
+                subdivision_name,
+                city,
+                house_type,
+                selling_price,
+                bedrooms,
+                bathrooms,
+                description,
+                contact_name
+            });
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
         }
     }
-
-    // console.log("Result: " + JSON.stringify(results));
-
+    console.log("Result: " + JSON.stringify(results));
     console.log('🎉 Xong rồi!');
   } catch (err) {
     console.error('❌ Lỗi trong quá trình xử lý:', err.message);
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 })();
 
