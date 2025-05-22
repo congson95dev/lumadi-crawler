@@ -52,6 +52,7 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
     console.log("✅ Posts list", data);
 
     const results = [];
+    const allHeaders = [];
 
     let n = 0;
     for (const item of data) {
@@ -97,11 +98,14 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
 
             key_informations_amenity_list = key_informations_data.concat(amenities_data);
             key_informations_amenity_features_list = key_informations_amenity_list.concat(features_data);
+            allHeaders.push(...key_informations_amenity_features_list);
             console.log("✅ Result headers list", key_informations_amenity_features_list);
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
         }
     }
+    const uniqueAllHeaders = [...new Set(allHeaders)];
+    console.log("📦 Tất cả headers:", uniqueAllHeaders);
     console.log('🎉 Finished!');
   } catch (err) {
     console.error('❌ Error:', err.message);

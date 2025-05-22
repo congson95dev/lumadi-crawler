@@ -101,28 +101,46 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             key_informations_amenity_features_list = key_informations_amenity_list.concat(features_data);
             console.log("✅ Result headers list", key_informations_amenity_features_list);
 
-            const city = await page.$eval(
-              '#highlightBox > div > div:nth-of-type(2)',
-              el => Array.from(el.childNodes)
-                        .filter(n => n.nodeType === Node.TEXT_NODE)
-                        .map(n => n.textContent.trim())
-                        .join('')
-            );
-            console.log(city);
+            const address = await page.$eval('.details-property-details address', el => el.textContent.trim());
+            console.log("address: " + address);
 
-            // const content = await page.$$eval(
-            //   'div.sdc-article-body p',
-            //   elements => elements.map(el => el.innerText.trim()).join('\n')
-            // ).catch(() => '');
-            // console.log("content: " + content);
+            const city = await page.$eval('.details-required-propertydetails li.-location .value', el => el.textContent.trim());
+            console.log("city: " + city);
 
-            // results.push({
-            //     title,
-            //     sub_title,
-            //     link,
-            //     published_date,
-            //     content,
-            // });
+            const house_type = await page.$eval('.details-property-details div ul li:nth-child(1) span.value a', el => el.textContent.trim());
+            console.log("house_type: " + house_type);
+
+            const selling_price = await page.$eval('.details-price-total strong', el => el.value.trim());
+            console.log("selling_price: " + selling_price);
+
+            const bedrooms = await page.$eval('.details-property-details div ul li:nth-child(2) span.value a', el => el.textContent.trim());
+            console.log("bedrooms: " + bedrooms);
+
+            const bathrooms = await page.$eval('.details-property-details div ul li:nth-child(3) span.value a', el => el.textContent.trim());
+            console.log("bathrooms: " + bathrooms);
+
+            //  ====
+            
+            const description = await page.$$eval(
+              'div#DescriptionBox',
+              elements => elements.map(el => el.innerText.trim()).join('\n')
+            ).catch(() => '');
+            console.log("description: " + description);
+
+            const contact_name = await page.$eval('#rightColumn div[dir="auto"]', el => el.innerText.trim());
+            console.log("contact_name: " + contact_name);
+
+            results.push({
+                indoor_outdoor_list,
+                subdivision_name,
+                city,
+                house_type,
+                selling_price,
+                bedrooms,
+                bathrooms,
+                description,
+                contact_name
+            });
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
         }
