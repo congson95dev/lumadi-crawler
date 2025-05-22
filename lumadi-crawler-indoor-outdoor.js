@@ -47,12 +47,13 @@ const LAMUDI_URL = process.env.LAMUDI_URL;
     console.log("✅ Posts list", data);
 
     const results = [];
+    const allIndoorOutdoor = [];
 
     let n = 0;
     for (const item of data) {
-        // crawl only 1 posts
+        // crawl only 3 posts
         n++;
-        if (n > 1) {continue;}
+        if (n > 3) {continue;}
         const { link } = item;
         try {
             await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -80,16 +81,19 @@ const LAMUDI_URL = process.env.LAMUDI_URL;
             console.log("✅ Outdoors list", outdoors_data);
 
             indoor_outdoor_list = indoors_data.concat(outdoors_data);
+            allIndoorOutdoor.push(...indoor_outdoor_list);
             console.log("✅ Indoors Outdoors list", indoor_outdoor_list);
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
         }
     }
+    const uniqueAllIndoorOutdoor = [...new Set(allIndoorOutdoor)];
+    console.log("📦 Tất cả indoor & outdoor:", uniqueAllIndoorOutdoor);
     console.log('🎉 Finished!');
   } catch (err) {
     console.error('❌ Error:', err.message);
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 })();
 
