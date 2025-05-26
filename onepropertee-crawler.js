@@ -101,40 +101,65 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             key_informations_amenity_features_list = key_informations_amenity_list.concat(features_data);
             console.log("✅ Result headers list", key_informations_amenity_features_list);
 
-            const address = await page.$eval('.details-property-details address', el => el.textContent.trim());
+            let address = '';
+            const addressEl = await page.$('.details-property-details address');
+            if (addressEl) {
+              address = await page.evaluate(el => el.textContent.trim(), addressEl);
+            }
             console.log("address: " + address);
 
             const city = await page.$eval('.details-required-propertydetails li.-location .value', el => el.textContent.trim());
             console.log("city: " + city);
 
-            const house_type = await page.$eval('.details-property-details div ul li:nth-child(1) span.value a', el => el.textContent.trim());
-            console.log("house_type: " + house_type);
-
-            const selling_price = await page.$eval('.details-price-total strong', el => el.value.trim());
+            const selling_price = await page.$eval('.details-price-total strong', el => el.textContent.trim());
             console.log("selling_price: " + selling_price);
 
-            const bedrooms = await page.$eval('.details-property-details div ul li:nth-child(2) span.value a', el => el.textContent.trim());
+            const property_details = await page.evaluate(() => {
+              const items = document.querySelectorAll('.details-property-details div ul li');
+              const result = {};
+
+              items.forEach(li => {
+                const keyEl = li.querySelector('.key');
+                const valueEl = li.querySelector('.value');
+
+                if (keyEl && valueEl) {
+                  const key = keyEl.textContent.trim();
+                  const value = valueEl.textContent.trim();
+                  result[key] = value;
+                }
+              });
+
+              return result;
+            });
+
+            const house_type = property_details['House Type:'] || '';
+            console.log("house_type: " + house_type);
+
+            const bedrooms = property_details['Number of Bedrooms:'] || '';
             console.log("bedrooms: " + bedrooms);
 
-            const bathrooms = await page.$eval('.details-property-details div ul li:nth-child(3) span.value a', el => el.textContent.trim());
+            const bathrooms = property_details['Number of Bathrooms:'] || '';
             console.log("bathrooms: " + bathrooms);
 
-            const car_parking_space = await page.$eval('.details-property-details div ul li:nth-child(7) span.value a', el => el.textContent.trim());
+            const car_parking_space = property_details['Number of Car Parking Spaces:'] || '';
             console.log("car_parking_space: " + car_parking_space);
 
-            const house_floor_area = await page.$eval('.details-property-details div ul li:nth-child(4) span.value a', el => el.textContent.trim());
+            const house_floor_area = property_details['House Floor Area in sqm:'] || '';
             console.log("house_floor_area: " + house_floor_area);
 
-            const lot_area = await page.$eval('.details-property-details div ul li:nth-child(5) span.value a', el => el.textContent.trim());
+            const lot_area = property_details['Lot Area in sqm:'] || '';
             console.log("lot_area: " + lot_area);
 
-            const number_of_floors = await page.$eval('.details-property-details div ul li:nth-child(6) span.value a', el => el.textContent.trim());
+            const number_of_floors = property_details['Number of Floors:'] || '';
             console.log("number_of_floors: " + number_of_floors);
 
-            const property_condition = await page.$eval('.details-property-details div ul li:nth-child(8) span.value a', el => el.textContent.trim());
+            const property_condition = property_details['Property Condition:'] || '';
             console.log("property_condition: " + property_condition);
 
-            await page.click('button[data-cy="read-more-button"]');
+            const readMoreBtn = await page.$('button[data-cy="read-more-button"]');
+            if (readMoreBtn) {
+              await readMoreBtn.click();
+            }
 
             const description = await page.$$eval(
               '.details-property-description p',
@@ -145,23 +170,32 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             const contact_name = await page.$eval('.details-seller-name:nth-child(1) strong', el => el.innerText.trim());
             console.log("contact_name: " + contact_name);
 
+            const status = await page.$eval('.details-title .listing-rfo span', el => el.textContent.trim());
+            console.log("status: " + status);
+
             results.push({
-                indoor_outdoor_list,
-                subdivision_name,
+                key_informations_amenity_features_list,
+                address,
                 city,
-                house_type,
                 selling_price,
+                house_type,
                 bedrooms,
                 bathrooms,
+                car_parking_space,
+                house_floor_area,
+                lot_area,
+                number_of_floors,
+                property_condition,
                 description,
-                contact_name
+                contact_name,
+                status
             });
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
         }
     }
 
-    // console.log("Result: " + JSON.stringify(results));
+    console.log("Result: " + JSON.stringify(results));
 
     console.log('🎉 Xong rồi!');
   } catch (err) {
