@@ -174,6 +174,7 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             console.log("status: " + status);
 
             results.push({
+                link,
                 key_informations_amenity_features_list,
                 address,
                 city,
