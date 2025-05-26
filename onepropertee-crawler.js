@@ -119,15 +119,30 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             const bathrooms = await page.$eval('.details-property-details div ul li:nth-child(3) span.value a', el => el.textContent.trim());
             console.log("bathrooms: " + bathrooms);
 
-            //  ====
-            
+            const car_parking_space = await page.$eval('.details-property-details div ul li:nth-child(7) span.value a', el => el.textContent.trim());
+            console.log("car_parking_space: " + car_parking_space);
+
+            const house_floor_area = await page.$eval('.details-property-details div ul li:nth-child(4) span.value a', el => el.textContent.trim());
+            console.log("house_floor_area: " + house_floor_area);
+
+            const lot_area = await page.$eval('.details-property-details div ul li:nth-child(5) span.value a', el => el.textContent.trim());
+            console.log("lot_area: " + lot_area);
+
+            const number_of_floors = await page.$eval('.details-property-details div ul li:nth-child(6) span.value a', el => el.textContent.trim());
+            console.log("number_of_floors: " + number_of_floors);
+
+            const property_condition = await page.$eval('.details-property-details div ul li:nth-child(8) span.value a', el => el.textContent.trim());
+            console.log("property_condition: " + property_condition);
+
+            await page.click('button[data-cy="read-more-button"]');
+
             const description = await page.$$eval(
-              'div#DescriptionBox',
+              '.details-property-description p',
               elements => elements.map(el => el.innerText.trim()).join('\n')
             ).catch(() => '');
             console.log("description: " + description);
 
-            const contact_name = await page.$eval('#rightColumn div[dir="auto"]', el => el.innerText.trim());
+            const contact_name = await page.$eval('.details-seller-name:nth-child(1) strong', el => el.innerText.trim());
             console.log("contact_name: " + contact_name);
 
             results.push({
