@@ -53,7 +53,7 @@ const LAMUDI_PANGASINAN_URL = process.env.LAMUDI_PANGASINAN_URL;
     for (const item of data) {
         // crawl only 1 posts
         n++;
-        if (n > 1) {continue;}
+        if (n > 10) {continue;}
         const { link } = item;
         try {
             await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -110,7 +110,7 @@ const LAMUDI_PANGASINAN_URL = process.env.LAMUDI_PANGASINAN_URL;
             await page.waitForSelector('ul.react-international-phone-country-selector-dropdown li[data-country="vn"] span', { visible: true });
             await page.click('ul.react-international-phone-country-selector-dropdown li[data-country="vn"] span');
             await new Promise(resolve => setTimeout(resolve, 1000));
-            await page.type('input.react-international-phone-input', '379197986');
+            await page.type('input.react-international-phone-input', '379197966');
 
             await page.click(".PhoneNumber_showButton____jp1");
             await new Promise(resolve => setTimeout(resolve, 2000));
