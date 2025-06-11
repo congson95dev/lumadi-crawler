@@ -1,3 +1,4 @@
+const { timeout } = require('puppeteer');
 const puppeteer = require('puppeteer');
 require('dotenv').config();
 
@@ -58,7 +59,7 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
     for (const item of data) {
         // crawl only 1 posts
         n++;
-        if (n > 1) {continue;}
+        if (n > 10) {continue;}
         const { link } = item;
         try {
             await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -167,10 +168,18 @@ const ONEPROPERTEE_URL = process.env.ONEPROPERTEE_URL;
             ).catch(() => '');
             console.log("description: " + description);
 
-            const contact_name = await page.$eval('.details-seller-name:nth-child(1) strong', el => el.innerText.trim());
+            let contact_name = null;
+            let contact_name_element = await page.$('.details-seller-name:nth-child(1) strong', { timeout: 2000 });
+            if (contact_name_element) {
+              contact_name = await page.evaluate(el => el.textContent.trim(), contact_name_element);
+            }
             console.log("contact_name: " + contact_name);
 
-            const status = await page.$eval('.details-title .listing-rfo span', el => el.textContent.trim());
+            let status = null;
+            let status_element = await page.$('.details-title .listing-rfo span', { timeout: 2000 });
+            if (status_element) {
+              status = await page.evaluate(el => el.textContent.trim(), status_element);
+            }
             console.log("status: " + status);
 
             results.push({
