@@ -45,9 +45,9 @@ const SKU = "2997-22";
         console.log("description: " + description);
 
         let specifications = null;
-        const specEl = await $page.$('.product-specs__table');
+        const specEl = await page.$('.product-specs__table');
         if (specEl) {
-          specifications = await $page.evaluate(el => el.innerText.trim(), specEl);
+          specifications = await page.evaluate(el => el.innerText.trim(), specEl);
         }
         console.log("specifications:", specifications);
         
@@ -84,6 +84,7 @@ const SKU = "2997-22";
         console.log(`🔎 Found ${videos.length} videos.`);
         for (const video of videos) {
             let videoID = await video.evaluate(el => el.getAttribute('data-vimeovideoid'));
+            if (!videoID) continue;
             let src = `https://player.vimeo.com/video/${videoID}?title=0&byline=0&portrait=0&muted=1&autoplay=1&app_id=122963`;
             videos_url.push({ link: src });
         }
