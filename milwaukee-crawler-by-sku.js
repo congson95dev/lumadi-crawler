@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 const MILWAUKEE_URL = process.env.MILWAUKEE_URL;
-const SKU = "2779-22";
+const SKU = "2997-22";
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -44,8 +44,12 @@ const SKU = "2779-22";
         const description = await page.$eval('.product-info__overview div div', el => el.innerText.trim());
         console.log("description: " + description);
 
-        const specifications = await page.$eval('.product-specs__table', el => el.innerText.trim());
-        console.log("specifications: " + specifications);
+        let specifications = null;
+        const specEl = await $page.$('.product-specs__table');
+        if (specEl) {
+          specifications = await $page.evaluate(el => el.innerText.trim(), specEl);
+        }
+        console.log("specifications:", specifications);
         
         await page.waitForSelector('ul#splide02-list li img', { visible: true, timeout: 5000 });
         console.log('✅ Imgs loaded.');
