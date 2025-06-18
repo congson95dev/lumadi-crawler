@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 const GREENLEE_URL = process.env.GREENLEE_URL;
-const SKU = "555RSC";
+const SKU = "7310SB";
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -106,7 +106,7 @@ const SKU = "555RSC";
 
             const videoBtn = await page.$('.thumbnails li a.vidToggle');
             if (videoBtn) {
-              console.log('🎯 Clicking video button to trigger video...');
+              console.log('🎯 Clicking video button to move to the video section...');
               await page.evaluate(() => {
                 const btn = document.querySelector('.thumbnails li a.vidToggle');
                 if (btn) btn.click();
@@ -116,15 +116,59 @@ const SKU = "555RSC";
               console.log('⚠️ Video button not found or hidden.');
             }
 
-            const video_url = await page.$eval('.ytOuter iframe', el => el.src);
-            console.log("video_url: " + video_url);
+            const videoBtn2 = await page.$('.thumbnails li a.vidToggle');
+            if (videoBtn2) {
+              console.log('🎯 Clicking video button to trigger video...');
+              await page.evaluate(() => {
+                const btn2 = document.querySelector('.thumbnails li a.vidToggle');
+                if (btn2) btn2.click();
+              });
+              await new Promise(resolve => setTimeout(resolve, 3000)); // Chờ video render
+            } else {
+              console.log('⚠️ Video button not found or hidden.');
+            }
+
+            const video_urls = [];
+
+            // Lấy tất cả các selector của <li> hợp lệ
+            const videoLinks = await page.$$(`.ytPlaylist li:not(.tmplt) a.ytFallbackLink`);
+
+            console.log(`🔎 Found ${videoLinks.length} video links`);
+
+            for (let i = 0; i < videoLinks.length; i++) {
+              const link = videoLinks[i];
+
+              // Scroll vào link (phòng bị offscreen hoặc cần scroll để render)
+              await link.evaluate(el => el.scrollIntoView());
+
+              console.log(`🎯 Clicking video ${i + 1}...`);
+
+              // Click thủ công qua browser context
+              await page.evaluate((idx) => {
+                const items = document.querySelectorAll('.ytPlaylist li:not(.tmplt) a.ytFallbackLink');
+                if (items[idx]) items[idx].click();
+              }, i);
+
+              // Đợi video render (nếu iframe load chậm, có thể tăng timeout)
+              try {
+                await page.waitForSelector('.ytOuter iframe', { timeout: 10000 });
+
+                const video_url = await page.$eval('.ytOuter iframe', el => el.src);
+                console.log(`✅ Video URL ${i + 1}: ${video_url}`);
+                video_urls.push(video_url);
+              } catch (err) {
+                console.log(`⚠️ Không tìm thấy iframe sau khi click video ${i + 1}`, err);
+              }
+            }
+
+            console.log("video_url: " + video_urls);
 
             results.push({
               description,
               specifications,
               link,
               imgs_url,
-              video_url
+              video_urls
             });
         } catch (err) {
             console.log(`❌ Lỗi khi xử lý link: ${link}`, err);
