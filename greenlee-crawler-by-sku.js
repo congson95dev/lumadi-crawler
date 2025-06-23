@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 const GREENLEE_URL = process.env.GREENLEE_URL;
-const SKU = "7310SB";
+const SKU = "555RSC";
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -60,6 +60,20 @@ const SKU = "7310SB";
 
             const specifications = await page.$eval('#specifications table', el => el.innerText.trim());
             console.log("specifications: " + specifications);
+
+            const imgs_url = [];
+
+            await page.waitForSelector('div.thumbnails ul.thumbs li:not(.hide) .thumb-sizer img[src]', { timeout: 60000 });
+            console.log('✅ Thumb Imgs loaded.');
+
+            const images = await page.$$('div.thumbnails ul.thumbs li:not(.hide) .thumb-sizer');
+            console.log(`🔎 Found ${images.length} thumb images.`);
+
+            // Click vào từng ảnh thumb để kích hoạt ảnh lớn
+            for (const image of images) {
+              const imgEl = await image.$('img');
+              imgEl.click();
+            }
             
             await page.waitForSelector('ul.images li.mobile-image img[src]', { timeout: 60000 });
             console.log('✅ Imgs loaded.');
@@ -67,20 +81,18 @@ const SKU = "7310SB";
             const anchors = await page.$$('ul.images li.mobile-image a');
             console.log(`🔎 Found ${anchors.length} anchors.`);
 
-            const imgs_url = [];
-
-            // Check nếu có ảnh Magic360 → click nút kích hoạt
-            const hasMagic360 = await page.$('a.Magic360');
-            if (hasMagic360) {
-              const magicBtn = await page.$('.thumbs .Magic360_icon:not(.ng-hide)');
-              if (magicBtn) {
-                console.log('🎯 Clicking .Magic360_icon to trigger 360 image...');
-                await magicBtn.click();
-                await new Promise(resolve => setTimeout(resolve, 3000)); // Chờ ảnh 360 render
-              } else {
-                console.log('⚠️ .Magic360_icon not found or hidden.');
-              }
-            }
+            // Check nếu có ảnh Magic360 → click nút kích hoạt => !!! hủy vì đã có func click ở trên kia.
+            // const hasMagic360 = await page.$('a.Magic360');
+            // if (hasMagic360) {
+            //   const magicBtn = await page.$('.thumbs .Magic360_icon:not(.ng-hide)');
+            //   if (magicBtn) {
+            //     console.log('🎯 Clicking .Magic360_icon to trigger 360 image...');
+            //     await magicBtn.click();
+            //     await new Promise(resolve => setTimeout(resolve, 3000)); // Chờ ảnh 360 render
+            //   } else {
+            //     console.log('⚠️ .Magic360_icon not found or hidden.');
+            //   }
+            // }
 
             for (const anchor of anchors) {
               const imgEl = await anchor.$('img');
@@ -179,6 +191,6 @@ const SKU = "7310SB";
   } catch (err) {
     console.error('❌ Lỗi trong quá trình xử lý:', err.message);
   } finally {
-    await browser.close();
+    // await browser.close();
   }
 })();
