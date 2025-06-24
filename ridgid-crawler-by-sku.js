@@ -9,7 +9,7 @@ const SKU = "RP 251";
     headless: false,
     defaultViewport: null,
     args: [
-      '--window-position=920,0',
+      '--window-position=2920,0',
       '--no-sandbox',
       '--disable-setuid-sandbox',
     ],
@@ -58,8 +58,12 @@ const SKU = "RP 251";
             const description = await page.$eval('.marketing-content', el => el.innerText.trim());
             console.log("description: " + description);
 
-            const specifications = await page.$eval('#specifications table', el => el.innerText.trim());
-            console.log("specifications: " + specifications);
+            let specifications = null;
+            const specEl = await page.$('#specifications table');
+            if (specEl) {
+              specifications = await page.evaluate(el => el.innerText.trim(), specEl);
+            }
+            console.log("specifications:", specifications);
 
             const imgs_url = [];
 
