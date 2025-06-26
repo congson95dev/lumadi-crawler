@@ -46,6 +46,12 @@ const SKU = "RP 251";
 
     const results = [];
 
+    if (data.length == 0) {
+        const error = true;
+        results.push({error, SKU});
+        console.log("❌ Không tìm thấy sản phẩm với SKU:", SKU);
+    }
+
     let n = 0;
     for (const item of data) {
         // crawl only first item
