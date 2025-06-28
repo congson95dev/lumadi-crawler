@@ -8,7 +8,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
     headless: false,
     defaultViewport: null,
     args: [
-      '--window-position=2920,0',
+      '--window-position=920,0',
       '--no-sandbox',
       '--disable-setuid-sandbox',
     ],
@@ -79,6 +79,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
     const results = [];
     let m = 0;
     for (const url of urls) {
+      // if (url != "https://www.rightmove.co.uk/estate-agents/Bedfordshire.html?page=6") continue;
       m++;
       // if (m > 3) continue;
       console.log(url);
@@ -120,7 +121,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
         let n = 0;
         for (const item of data) {
           n++;
-          if (n > 3) continue;
+          // if (n > 3) continue;
 
           console.log("link: " + item.link);
           console.log("name: " + item.name);
@@ -129,80 +130,86 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
             let max = '';
             let min = '';
             let avg = '';
+            let property_list = '';
             await page.goto(item.link, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-            const property_list = await page.$eval('div[data-test="propertyList"] div', el => el.innerText.trim());
-            console.log("property_list: " + property_list);
-
-            // Click "See all properties" link to access inside
-            const see_all_propreties_link_element = await page.$(
-              'a[data-testid="propertyResultsLink"]'
+            const property_list_element = await page.$(
+              'div[data-test="propertyList"] div'
             );
-            if (see_all_propreties_link_element) {
-              const see_all_propreties_link = await page.$eval('a[data-testid="propertyResultsLink"]', el => el.href);
-              await page.goto(see_all_propreties_link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            if (property_list_element) {
+              property_list = await page.$eval('div[data-test="propertyList"] div', el => el.innerText.trim());
+              console.log("property_list: " + property_list);
 
-              const properties = await page.$$('a[data-testid="property-price"]');
-              console.log(`🔎 Found ${properties.length} properties`);
-
-              const prices = [];
-              for (const proprety of properties) {
-                const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
-                console.log("price: " + price);
-                prices.push({ price: price });
-              }
-
-              // Đầu tiên kiểm tra xem pagination có tồn tại không
-              const paginationElement = await page.$(
-                'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)'
+              // Click "See all properties" link to access inside
+              const see_all_propreties_link_element = await page.$(
+                'a[data-testid="propertyResultsLink"]'
               );
+              if (see_all_propreties_link_element) {
+                const see_all_propreties_link = await page.$eval('a[data-testid="propertyResultsLink"]', el => el.href);
+                await page.goto(see_all_propreties_link, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-              if (paginationElement) {
-                // Nếu tồn tại, lấy nội dung rồi trích số
-                const pagination = await page.$eval(
-                  'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)',
-                  el => el.innerText.trim()
+                const properties = await page.$$('a[data-testid="property-price"]');
+                console.log(`🔎 Found ${properties.length} properties`);
+
+                const prices = [];
+                for (const proprety of properties) {
+                  const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
+                  console.log("price: " + price);
+                  prices.push({ price: price });
+                }
+
+                // Đầu tiên kiểm tra xem pagination có tồn tại không
+                const paginationElement = await page.$(
+                  'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)'
                 );
-                const onlyNumberMatch = pagination.match(/\d+/);
-                const totalPages = onlyNumberMatch ? onlyNumberMatch[0] : null;
 
-                console.log("pages: " + totalPages);
-                
-                for (let p = 1; p <= totalPages; p++) {
-                  if (p != 1) {
-                    const indexParam = `index=${(p - 1) * per_page}`;
-                    const urlWithIndex = see_all_propreties_link.includes('?')
-                      ? `${see_all_propreties_link}&${indexParam}`
-                      : `${see_all_propreties_link}?${indexParam}`;
-                    
-                    console.log("urlWithIndex: " + urlWithIndex);
-                    await page.goto(urlWithIndex, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                if (paginationElement) {
+                  // Nếu tồn tại, lấy nội dung rồi trích số
+                  const pagination = await page.$eval(
+                    'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)',
+                    el => el.innerText.trim()
+                  );
+                  const onlyNumberMatch = pagination.match(/\d+/);
+                  const totalPages = onlyNumberMatch ? onlyNumberMatch[0] : null;
 
-                    const properties = await page.$$('a[data-testid="property-price"]');
-                    for (const proprety of properties) {
-                      const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
-                      // console.log("price: " + price);
-                      prices.push({ price: price });
+                  console.log("pages: " + totalPages);
+                  
+                  for (let p = 1; p <= totalPages; p++) {
+                    if (p != 1) {
+                      const indexParam = `index=${(p - 1) * per_page}`;
+                      const urlWithIndex = see_all_propreties_link.includes('?')
+                        ? `${see_all_propreties_link}&${indexParam}`
+                        : `${see_all_propreties_link}?${indexParam}`;
+                      
+                      console.log("urlWithIndex: " + urlWithIndex);
+                      await page.goto(urlWithIndex, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+                      const properties = await page.$$('a[data-testid="property-price"]');
+                      for (const proprety of properties) {
+                        const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
+                        // console.log("price: " + price);
+                        prices.push({ price: price });
+                      }
                     }
                   }
                 }
+
+                console.log("prices: :", prices);
+
+                const priceNumbers = prices.map(p => {
+                  const cleaned = p.price.replace(/[^\d.]/g, ''); // loại bỏ mọi thứ không phải số
+                  return Number(cleaned);
+                });
+
+                // Tính max, min, avg
+                max = `£${Math.max(...priceNumbers)} pcm`;
+                min = `£${Math.min(...priceNumbers)} pcm`;
+                avg = `£${Math.round(priceNumbers.reduce((sum, val) => sum + val, 0) / priceNumbers.length)} pcm`;
+
+                console.log(`Max: ${max.toLocaleString('en-US')}`);
+                console.log(`Min: ${min.toLocaleString('en-US')}`);
+                console.log(`Avg: ${avg.toLocaleString('en-US')}`);
               }
-
-              console.log("prices: :", prices);
-
-              const priceNumbers = prices.map(p => {
-                const cleaned = p.price.replace(/[^\d.]/g, ''); // loại bỏ mọi thứ không phải số
-                return Number(cleaned);
-              });
-
-              // Tính max, min, avg
-              max = `£${Math.max(...priceNumbers)} pcm`;
-              min = `£${Math.min(...priceNumbers)} pcm`;
-              avg = `£${Math.round(priceNumbers.reduce((sum, val) => sum + val, 0) / priceNumbers.length)} pcm`;
-
-              console.log(`Max: ${max.toLocaleString('en-US')}`);
-              console.log(`Min: ${min.toLocaleString('en-US')}`);
-              console.log(`Avg: ${avg.toLocaleString('en-US')}`);
             }
 
             results.push({
@@ -229,6 +236,6 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
   } catch (err) {
     console.error('❌ Lỗi trong quá trình xử lý:', err.message);
   } finally {
-    await browser.close();
+    // await browser.close();
   }
 })();
