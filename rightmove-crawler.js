@@ -81,7 +81,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
     for (const url of urls) {
       // if (url != "https://www.rightmove.co.uk/estate-agents/Bedfordshire.html?page=6") continue;
       m++;
-      // if (m > 3) continue;
+      if (m > 1) continue;
       console.log(url);
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
       console.log('✅ Accessed to Page.');
@@ -121,7 +121,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
         let n = 0;
         for (const item of data) {
           n++;
-          // if (n > 3) continue;
+          if (n > 1) continue;
 
           console.log("link: " + item.link);
           console.log("name: " + item.name);
@@ -231,7 +231,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
         }
       }
     }
-    console.log("Result: " + JSON.stringify(results, null, 2));
+    // console.log("Result: " + JSON.stringify(results, null, 2));
     console.log('🎉 Xong rồi!');
   } catch (err) {
     console.error('❌ Lỗi trong quá trình xử lý:', err.message);
