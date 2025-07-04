@@ -131,7 +131,7 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
         let n = 0;
         for (const item of data) {
           n++;
-          if (n > 1) continue;
+          if (n > 3) continue;
 
           console.log("link: " + item.link);
           console.log("name: " + item.name);
@@ -168,11 +168,106 @@ const RIGHTMOVE_URL = process.env.RIGHTMOVE_URL;
                 if (text.includes('sale')) type = 'sale';
                 else if (text.includes('rent')) type = 'rent';
 
+                // click accept cookie
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const cookieBtnSelector = '#onetrust-button-group-parent #onetrust-accept-btn-handler';
+                const hasCookieButton = await page.$(cookieBtnSelector);
+
+                if (hasCookieButton) {
+                  console.log('🍪 Cookie accept button found. Clicking...');
+                  await page.click(cookieBtnSelector);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                  console.log('✅ No cookie banner found.');
+                }
+
+                // Click "See all properties" link to access inside
+                const see_all_propreties_link_element = await page.$(
+                  'a[data-testid="propertyResultsLink"]'
+                );
+                if (see_all_propreties_link_element) {
+                  const see_all_propreties_link = await page.$eval('a[data-testid="propertyResultsLink"]', el => el.href);
+                  await page.goto(see_all_propreties_link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+                  const properties = await page.$$('a[data-testid="property-price"]');
+                  console.log(`🔎 Found ${properties.length} properties`);
+
+                  const prices = [];
+                  for (const proprety of properties) {
+                    const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
+                    console.log("price: " + price);
+                    prices.push({ price: price });
+                  }
+
+                  // Đầu tiên kiểm tra xem pagination có tồn tại không
+                  const paginationElement = await page.$(
+                    'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)'
+                  );
+
+                  if (paginationElement) {
+                    // Nếu tồn tại, lấy nội dung rồi trích số
+                    const pagination = await page.$eval(
+                      'div.Pagination_pageSelectContainer__zt0rg span:nth-child(3)',
+                      el => el.innerText.trim()
+                    );
+                    const onlyNumberMatch = pagination.match(/\d+/);
+                    const totalPages = onlyNumberMatch ? onlyNumberMatch[0] : null;
+
+                    console.log("pages: " + totalPages);
+                    
+                    for (let p = 1; p <= totalPages; p++) {
+                      if (p != 1) {
+                        const indexParam = `index=${(p - 1) * per_page}`;
+                        const urlWithIndex = see_all_propreties_link.includes('?')
+                          ? `${see_all_propreties_link}&${indexParam}`
+                          : `${see_all_propreties_link}?${indexParam}`;
+                        
+                        console.log("urlWithIndex: " + urlWithIndex);
+                        await page.goto(urlWithIndex, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+                        const properties = await page.$$('a[data-testid="property-price"]');
+                        for (const proprety of properties) {
+                          const price = await proprety.$eval('.PropertyPrice_price__VL65t', el => el.innerText.trim());
+                          // console.log("price: " + price);
+                          prices.push({ price: price });
+                        }
+                      }
+                    }
+                  }
+
+                  console.log("prices:", prices);
+
+                  const priceNumbers = prices.map(p => {
+                    const cleaned = p.price.replace(/[^\d.]/g, ''); // loại bỏ mọi thứ không phải số
+                    return Number(cleaned);
+                  });
+
+                  // Tính max, min, avg
+                  if (type == "sale") {
+                    max_sale = `£${Math.max(...priceNumbers)} pcm`;
+                    min_sale = `£${Math.min(...priceNumbers)} pcm`;
+                    avg_sale = `£${Math.round(priceNumbers.reduce((sum, val) => sum + val, 0) / priceNumbers.length)} pcm`;
+
+                    console.log(`Max_sale: ${max_sale.toLocaleString('en-US')}`);
+                    console.log(`Min_sale: ${min_sale.toLocaleString('en-US')}`);
+                    console.log(`Avg_sale: ${avg_sale.toLocaleString('en-US')}`);
+                  } else if (type == "rent") {
+                    max_rent = `£${Math.max(...priceNumbers)} pcm`;
+                    min_rent = `£${Math.min(...priceNumbers)} pcm`;
+                    avg_rent = `£${Math.round(priceNumbers.reduce((sum, val) => sum + val, 0) / priceNumbers.length)} pcm`;
+
+                    console.log(`Max_rent: ${max_rent.toLocaleString('en-US')}`);
+                    console.log(`Min_rent: ${min_rent.toLocaleString('en-US')}`);
+                    console.log(`Avg_rent: ${avg_rent.toLocaleString('en-US')}`);
+                  }
+                }
                 console.log(`Only one tab found. Type: ${type}`);
               } else if (buttonTexts.length === 2) {
                 for (let i = 1; i <= 2; i++) {
-                  // Reload page before each click
-                  await page.goto(item.link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                  // Re-access the detail page before each click
+                  if (i != 1) {
+                    await page.goto(item.link, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                  }
 
                   // click accept cookie
                   await new Promise(resolve => setTimeout(resolve, 1000));
