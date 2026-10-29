@@ -3,8 +3,9 @@ require('dotenv').config();
 
 const MERCARI_SEARCH_URL =
   process.env.MERCARI_SEARCH_URL ||
-  'https://jp.mercari.com/en/search?keyword=short&sort=created_time&order=desc&status=on_sale';
+  'https://jp.mercari.com/en/search?keyword=Louis%20vuitton%20%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%83%BB%E3%82%B7%E3%83%A7%E3%83%BC%E3%83%AB&sort=created_time&order=desc&status=on_sale';
 const TOP_LIMIT = Number(process.env.TOP_LIMIT || 10);
+const BROWSER_LAUNCH_TIMEOUT = Number(process.env.BROWSER_LAUNCH_TIMEOUT || 120000);
 
 function parseBoolean(value, defaultValue) {
   if (value === undefined) return defaultValue;
@@ -33,6 +34,7 @@ function buildLaunchOptions(overrides = {}) {
     headless: HEADLESS ? 'new' : false,
     args: commonArgs,
     defaultViewport: HEADLESS ? { width: 1600, height: 1000 } : null,
+    timeout: BROWSER_LAUNCH_TIMEOUT,
     env: {
       ...process.env,
       NO_AT_BRIDGE: '1',
@@ -92,7 +94,7 @@ async function waitUntilRealCardsLoaded(page, limit) {
 
   for (let round = 0; round < maxRounds; round += 1) {
     const realCardCount = await page.evaluate(() => {
-      return document.querySelectorAll('#item-grid a[data-testid="thumbnail-link"]').length;
+      return document.querySelectorAll('#search-result a[data-testid="thumbnail-link"]').length;
     });
 
     if (realCardCount >= limit) {
@@ -123,27 +125,39 @@ async function crawlTopMercariProducts() {
       timeout: 60000,
     });
 
-    await page.waitForSelector('#item-grid', { timeout: 60000 });
+    await page.waitForSelector('#search-result', { timeout: 60000 });
     await waitUntilRealCardsLoaded(page, TOP_LIMIT);
 
     const products = await page.evaluate((limit) => {
-      const parseFromAriaLabel = (label) => {
-        if (!label) return { title: null, priceYen: null, priceVnd: null };
-        const cleaned = label.replace(/^Image of\s*/i, '').trim();
+      const numberFromText = (text) => {
+        const digits = text?.replace(/[^\d]/g, '');
+        return digits ? Number(digits) : null;
+      };
 
-        const vndMatch = cleaned.match(/\bVND([\d,]+)\b/i);
-        const yenMatch = cleaned.match(/([\d,]+)\s*yen/i);
-        const title = cleaned.replace(/\s*[\d,]+\s*yen.*$/i, '').trim();
+      const titleFromImageAlt = (alt) => {
+        if (!alt) return null;
 
-        return {
-          title: title || null,
-          priceYen: yenMatch ? Number(yenMatch[1].replace(/,/g, '')) : null,
-          priceVnd: vndMatch ? Number(vndMatch[1].replace(/,/g, '')) : null,
-        };
+        return (
+          alt
+            .replace(/^Image of\s*/i, '')
+            .replace(/(?:\s*の)?(?:サムネイル|thumbnail)$/i, '')
+            .trim() || null
+        );
+      };
+
+      const titleFromAriaLabelledBy = (element) => {
+        const ids = element.getAttribute('aria-labelledby')?.trim().split(/\s+/) || [];
+
+        return (
+          ids
+            .map((id) => document.getElementById(id)?.textContent?.trim())
+            .find((text) => text && !/(?:[¥￥]|VND|yen)\s*[\d,.]+|^[\d,\s]+$/i.test(text)) ||
+          null
+        );
       };
 
       const cells = Array.from(
-        document.querySelectorAll('#item-grid li[data-testid="item-cell"]')
+        document.querySelectorAll('#search-result li[data-testid="item-cell"]')
       );
 
       return cells
@@ -153,22 +167,27 @@ async function crawlTopMercariProducts() {
 
           const href = linkEl.getAttribute('href');
           const url = href ? new URL(href, 'https://jp.mercari.com').toString() : null;
-
-          const thumbnail = linkEl.querySelector('.merItemThumbnail');
-          const ariaLabel = thumbnail?.getAttribute('aria-label') || '';
-          const parsed = parseFromAriaLabel(ariaLabel);
+          const imageEl = linkEl.querySelector('picture img, img');
+          const title =
+            linkEl.querySelector('[data-testid="thumbnail-item-name"]')?.textContent?.trim() ||
+            titleFromAriaLabelledBy(linkEl) ||
+            titleFromImageAlt(imageEl?.getAttribute('alt'));
+          const priceYen = numberFromText(
+            linkEl.querySelector('[data-testid="item-tile-price"]')?.textContent
+          );
+          const id = href?.match(/\/(?:item|shops\/product)\/([^/?#]+)/)?.[1] || null;
 
           const imageUrl =
-            linkEl.querySelector('picture img')?.getAttribute('src') ||
-            linkEl.querySelector('img')?.getAttribute('src') ||
+            imageEl?.getAttribute('src') ||
             null;
 
           return {
-            id: thumbnail?.getAttribute('id') || null,
+            id,
             url,
-            title: parsed.title,
-            priceYen: parsed.priceYen,
-            priceVnd: parsed.priceVnd,
+            title: title || null,
+            priceYen,
+            // The current listing markup only contains a yen price.
+            priceVnd: null,
             imageUrl,
           };
         })
